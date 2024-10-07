@@ -1,6 +1,4 @@
-Sure! Here’s the complete guide, updated to include the suffix `-image` in the Docker tags and push commands.
 
-### Complete Setup Guide with `-image` Suffix
 
 #### Step 1: Create Dockerfiles for All Microservices
 
