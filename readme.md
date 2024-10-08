@@ -1,8 +1,25 @@
+Certainly! Here’s the complete guide combining all the steps for setting up your microservices with Docker and Kubernetes on Minikube.
 
+---
 
-#### Step 1: Create Dockerfiles for All Microservices
+## Complete Guide to Deploy Microservices with Docker and Kubernetes on Minikube
 
-Create a `Dockerfile` in the root of each microservice directory (e.g., `order-microservice`, `product-microservice`, etc.) with the following content:
+### Step 1: Clone the Repositories
+
+Clone the necessary microservice repositories:
+
+```bash
+git clone https://github.com/dineschandgr/product-microservice.git
+git clone https://github.com/dineschandgr/payment-microservice.git
+git clone https://github.com/dineschandgr/API-Gateway-Service.git
+git clone https://github.com/dineschandgr/Eureka_Service_Discovery.git
+git clone https://github.com/dineschandgr/user-service.git
+git clone https://github.com/dineschandgr/order-microservice.git
+```
+
+### Step 2: Create Dockerfiles for All Microservices
+
+Create a `Dockerfile` in the root of each microservice directory with the following content:
 
 ```dockerfile
 # Dockerfile for each microservice
@@ -24,9 +41,9 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 - **User Service**: `8765`
 - **API Gateway**: `8769`
 
-#### Step 2: Build Docker Images
+### Step 3: Build Docker Images
 
-Navigate to each microservice directory and run the following commands to build Docker images.
+Navigate to each microservice directory and build Docker images:
 
 ```bash
 # Build Order Service
@@ -45,7 +62,7 @@ mvn clean install -DskipTests=true
 docker build -t payment-service-image .
 
 # Build User Service
-cd ../user-microservice
+cd ../user-service
 mvn clean install -DskipTests=true
 docker build -t user-service-image .
 
@@ -55,125 +72,329 @@ mvn clean install -DskipTests=true
 docker build -t gateway-service-image .
 ```
 
-#### Step 3: Update the `docker-compose.yml`
+### Step 4: Tag and Push Docker Images to Docker Hub
 
-Ensure your `docker-compose.yml` is set up correctly. Here’s the relevant snippet:
-
-```yaml
-version: "3.7"
-services:
-  eureka-server:
-    container_name: eureka-server
-    image: eureka-service-image
-    hostname: eureka-server
-    networks:
-      - ms-network
-    ports:
-      - 8761:8761 
-    environment:
-      eureka.instance.hostname: eureka-server
-      eureka.client.serviceUrl.defaultZone: http://eureka-server:8761/eureka
-
-  order_service:
-    container_name: order-service
-    image: order-service-image
-    build: .
-    restart: always
-    ports:
-      - 8763:8763
-    links:
-      - eureka-server
-    environment:
-      spring.datasource.url: jdbc:mysql://mysqldb:3306/order_schema?allowPublicKeyRetrieval=true 
-      eureka.client.serviceUrl.defaultZone: http://eureka-server:8761/eureka
-    networks:
-      - ms-network
-    depends_on:
-      - mysqldb
-      - eureka-server
-    volumes:
-      - .m2:/root/.m2
-
-  # Other services...
-
-networks:  
-  ms-network:  
-    name: ms-network  
-    driver: bridge
-```
-
-#### Step 4: Run Docker Compose
-
-Run the following command to start all services:
+Tag and push your Docker images:
 
 ```bash
-docker-compose up --build
-```
-
-#### Step 5: Tag Docker Images
-
-After building your images, tag them for Docker Hub with the `-image` suffix:
-
-```bash
-# Tagging Order Service Image
+# Tagging and Pushing Order Service Image
 docker tag order-service-image yourusername/order-service-image:latest
-
-# Tagging Product Service Image
-docker tag product-service-image yourusername/product-service-image:latest
-
-# Tagging Payment Service Image
-docker tag payment-service-image yourusername/payment-service-image:latest
-
-# Tagging User Service Image
-docker tag user-service-image yourusername/user-service-image:latest
-
-# Tagging API Gateway Image
-docker tag gateway-service-image yourusername/gateway-service-image:latest
-```
-
-#### Step 6: Push Images to Docker Hub
-
-Push each tagged image to Docker Hub:
-
-```bash
-# Pushing Order Service Image
 docker push yourusername/order-service-image:latest
 
-# Pushing Product Service Image
+# Tagging and Pushing Product Service Image
+docker tag product-service-image yourusername/product-service-image:latest
 docker push yourusername/product-service-image:latest
 
-# Pushing Payment Service Image
+# Tagging and Pushing Payment Service Image
+docker tag payment-service-image yourusername/payment-service-image:latest
 docker push yourusername/payment-service-image:latest
 
-# Pushing User Service Image
+# Tagging and Pushing User Service Image
+docker tag user-service-image yourusername/user-service-image:latest
 docker push yourusername/user-service-image:latest
 
-# Pushing API Gateway Image
+# Tagging and Pushing API Gateway Image
+docker tag gateway-service-image yourusername/gateway-service-image:latest
 docker push yourusername/gateway-service-image:latest
 ```
 
-#### Step 7: Verify the Push
+### Step 5: Create Kubernetes Deployment Files
 
-Check your Docker Hub profile to ensure the images are available:
+Create a directory (e.g., `k8s`) and create the following YAML files:
 
+#### `eureka-service.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eureka-service
+  template:
+    metadata:
+      labels:
+        app: eureka-service
+    spec:
+      containers:
+      - name: eureka-service
+        image: yourusername/eureka-service-image:latest
+        ports:
+        - containerPort: 8761
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8761
+    targetPort: 8761
+    nodePort: 30001
+  selector:
+    app: eureka-service
 ```
-https://hub.docker.com/u/yourusername
+
+#### `order-service.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+      - name: order-service
+        image: yourusername/order-service-image:latest
+        ports:
+        - containerPort: 8763
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8763
+    targetPort: 8763
+    nodePort: 30002
+  selector:
+    app: order-service
 ```
 
-#### Step 8: Stopping and Cleaning Up
+#### `product-service.yaml`
 
-To stop and remove all containers, run:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+      - name: product-service
+        image: yourusername/product-service-image:latest
+        ports:
+        - containerPort: 8762
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8762
+    targetPort: 8762
+    nodePort: 30003
+  selector:
+    app: product-service
+```
+
+#### `payment-service.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+      - name: payment-service
+        image: yourusername/payment-service-image:latest
+        ports:
+        - containerPort: 8764
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8764
+    targetPort: 8764
+    nodePort: 30004
+  selector:
+    app: payment-service
+```
+
+#### `user-service.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: yourusername/user-service-image:latest
+        ports:
+        - containerPort: 8765
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+spec:
+  type: NodePort
+  ports:
+  - port: 8765
+    targetPort: 8765
+    nodePort: 30005
+  selector:
+    app: user-service
+```
+
+#### `api-gateway.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: yourusername/gateway-service-image:latest
+        ports:
+        - containerPort: 8769
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  type: NodePort
+  ports:
+  - port: 8769
+    targetPort: 8769
+    nodePort: 30006
+  selector:
+    app: api-gateway
+```
+
+### Step 6: Start Minikube
+
+If you haven't started Minikube yet, do so now:
 
 ```bash
-docker-compose down
+minikube start
+```
+
+### Step 7: Apply the Kubernetes Configurations
+
+Navigate to the directory where your YAML files are located and run the following commands:
+
+```bash
+# Apply all services
+kubectl apply -f eureka-service.yaml
+kubectl apply -f order-service.yaml
+kubectl apply -f product-service.yaml
+kubectl apply -f payment-service.yaml
+kubectl apply -f user-service.yaml
+kubectl apply -f api-gateway.yaml
+```
+
+### Step 8: Verify Deployments
+
+Check the status of your deployments and services:
+
+```bash
+kubectl get deployments
+kubectl get pods
+kubectl get services
+```
+
+### Step 9: Access the Services
+
+Get the Minikube IP:
+
+```bash
+minikube ip
+```
+
+Access each service using the node ports specified in your YAML files:
+
+- **Eureka Service**: `http://<minikube-ip>:30001`
+- **Order Service**: `http://<minikube-ip>:30002`
+- **Product Service**: `http://<minikube-ip>:30003`
+- **Payment Service**: `http://<minikube-ip>:30004`
+- **User Service**: `http://<minikube-ip>:30005`
+- **API Gateway**: `http://<minikube-ip>:30006`
+
+### Step 10: Clean Up
+
+To delete all deployed services
+
+ and deployments:
+
+```bash
+kubectl delete -f eureka-service.yaml
+kubectl delete -f order-service.yaml
+kubectl delete -f product-service.yaml
+kubectl delete -f payment-service.yaml
+kubectl delete -f user-service.yaml
+kubectl delete -f api-gateway.yaml
 ```
 
 ### Summary
-1. **Create a `Dockerfile`** for each microservice.
-2. **Build Docker images** for each microservice.
-3. **Run services** with `docker-compose`.
-4. **Tag images** for Docker Hub with the `-image` suffix.
-5. **Push images** to Docker Hub.
-6. **Verify** on Docker Hub.
+1. **Clone the repositories**.
+2. **Create Dockerfiles** for each microservice.
+3. **Build Docker images** and push them to Docker Hub.
+4. **Create Kubernetes YAML files** for all services.
+5. **Start Minikube** and apply the configurations.
+6. **Verify deployments** and access services.
 7. **Clean up** when done.
 
+Make sure to replace `yourusername` with your actual Docker Hub username. Enjoy your microservices setup!
