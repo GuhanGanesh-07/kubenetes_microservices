@@ -1,4 +1,3 @@
-Certainly! Here’s the complete guide combining all the steps for setting up your microservices with Docker and Kubernetes on Minikube.
 
 ---
 
