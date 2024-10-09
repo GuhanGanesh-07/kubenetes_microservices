@@ -39,6 +39,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 - **Payment Service**: `8764`
 - **User Service**: `8765`
 - **API Gateway**: `8769`
+- ** Eruka service** : `8761`
 
 ### Step 3: Build Docker Images
 
@@ -69,6 +70,12 @@ docker build -t user-service-image .
 cd ../api-gateway-service
 mvn clean install -DskipTests=true
 docker build -t gateway-service-image .
+
+# Build Eruka server
+
+cd ../Eureka_Service_Discovery
+mvn clean install -DskipTests=true
+docker build -t eureka-service-image .
 ```
 
 ### Step 4: Tag and Push Docker Images to Docker Hub
